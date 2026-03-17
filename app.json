@@ -48,7 +48,9 @@
             "./assets/fonts/GSF.ttf"
           ]
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

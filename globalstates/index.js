@@ -62,4 +62,8 @@ let communityData = [
     }
 ]
 
-export {communityData, messages}
+let session = {}
+
+let user = {};
+
+export {communityData, messages, session, user}

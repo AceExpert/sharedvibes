@@ -1,5 +1,5 @@
 import { Link, router } from 'expo-router';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 import { StyleSheet, View, Text, TextInput, ScrollView, Image, ImageBackground, TouchableOpacity } from 'react-native';
 
@@ -43,6 +43,10 @@ export default function HomeScreen() {
 
     }
   }
+
+  useEffect(() => {
+    router.navigate("/login")
+  }, [])
 
   return (
     <SafeAreaProvider>
@@ -101,7 +105,7 @@ export default function HomeScreen() {
                 <Text style={[{fontSize: 16, fontWeight: 600}]}>Tags</Text>
                 <View style={[globalstyles.row, globalstyles.center, {gap: 5, flexWrap: "wrap", marginTop: 5, paddingRight: 50 && 0, rowGap: 6, marginTop: 10}]}>
                   {cData.tags?.map?.(tg => 
-                    <Chip name={tg} selected={true} fontSize={11}/>
+                    <Chip name={tg} selected={true} fontSize={11} key={Math.random()}/>
                   )}
                 </View>
               </View>
