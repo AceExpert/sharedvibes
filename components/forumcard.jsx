@@ -16,9 +16,9 @@ import { styles as globalstyles } from "../styles/global";
 
 import PFPS from "../assets/images/pfp.png";
 
-export default function ForumCard({title, content, author, avatar, date, tags = [], upvotes = 0, downvotes = 0, comments = 0, status = 2, ...props}) {
+export default function ForumCard({title, content, author, avatar, date, tags = [], upvotes = 0, downvotes = 0, comments = 0, status = 2, onPress, ...props}) {
     return (
-        <TouchableOpacity style={[globalstyles.column, {width: "100%"}]} onPress={() => router.navigate({pathname: "/chat/Forums/General", params: { id: 9423, title: "Which elective would be the best for sem 4?", chanType: 3 }})}>
+        <TouchableOpacity style={[globalstyles.column, {width: "100%"}]} onPress={onPress || (() => router.navigate({pathname: "/chat/Forums/General", params: { id: 9423, title: "Which elective would be the best for sem 4?", chanType: 3 }}))}>
 
         <View style={[globalstyles.column, {width: "100%", paddingHorizontal: 15}]}>
             <View style={[globalstyles.column, {width: "100%", height: "auto", backgroundColor: "white", borderWidth: .5, borderColor: "rgba(122, 122, 122, 0.4)", borderRadius: 15, paddingVertical: 12, paddingTop: 5, paddingBottom: 12 && 21, paddingHorizontal: 5}]}>
@@ -37,8 +37,8 @@ export default function ForumCard({title, content, author, avatar, date, tags = 
                     <View style={[globalstyles.row, {justifyContent: "space-between"}]}>
                         <View style={[globalstyles.row, globalstyles.center, {gap: 5}]}>
                             <View style={[globalstyles.row, globalstyles.center, {justifyContent: "center", borderRadius: 50, aspectRatio: 1, width: 15, backgroundColor: "maroon"}]}>
-                                <Image source={avatar} style={[{width: "100%", aspectRatio: 1, borderRadius: 50}]}/>
-                                {/* <Text style={{color: "white", fontFamily: "GSF", fontSize: 15}}>{avatar}</Text> */}
+                                {/* <Image source={avatar} style={[{width: "100%", aspectRatio: 1, borderRadius: 50}]}/> */}
+                                <Text style={{color: "white", fontFamily: "GSF", fontSize: 11}}>{avatar}</Text>
                             </View>
                             <Text style={[{fontFamily: "GSF", color: "grey", fontSize: 13}]}>Posted by <Text style={[{color: "maroon"}]}>{author}</Text></Text>
                         </View>

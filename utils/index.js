@@ -68,4 +68,8 @@ function responseGetCookies(headers) {
     return cookies;
 }
 
-export {getCookies, responseGetCookies};
+function createID() {
+    return Math.round(Math.random() * 1000000000 + 10000)
+}
+
+export {getCookies, responseGetCookies, createID};

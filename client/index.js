@@ -4,6 +4,11 @@ import { responseGetCookies } from "../utils";
 
 import { session, user } from "../globalstates";
 
+import * as SecureStore from "expo-secure-store";
+import KVStore from "expo-sqlite/kv-store";
+
+import "./websocket";
+
 const URL = endpoint => 'https://sso.sayutel.com/' + endpoint;
 
 function headers(data = {}) {
@@ -61,7 +66,6 @@ function createSession(resolver, retry = 0) {
                 let cookies = responseGetCookies(resp.headers);
                 let sesstoken = cookies.find(t => t.name === 'sesstoken');
                 session.sesstoken = sesstoken.value;
-                console.log(session);
                 res()
             })
         } else {
@@ -109,6 +113,7 @@ function requestOTP(email) {
 }
 
 function loginOTP(otp) {
+    console.log(otp);
     let res;
     let prom = new Promise(resolve => res = resolve);
     createSession().then(() => {
@@ -117,10 +122,17 @@ function loginOTP(otp) {
             headers: headers(),
             body: dEncrypt(otp)
         }).then(resp => {
+                console.log(resp.status);
                 if(resp.status === 200) {
+                    
                     resp.text().then(val => {
                         let data = JSON.parse(dDecrypt(val));
                         if(!data.error) {
+                            let cookies = responseGetCookies(resp.headers);
+                            let svtoken = cookies.find(c => c.name === 'svtoken');
+                            session.svtoken = svtoken.value;
+                            SecureStore.setItem("svtoken", session.svtoken);
+                            KVStore.setItemSync("user", JSON.stringify(data.data));
                             Object.keys(data.data).forEach(k => {
                                 user[k] = data.data[k];
                             })

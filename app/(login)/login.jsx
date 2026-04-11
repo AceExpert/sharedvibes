@@ -27,7 +27,7 @@ import ET from '@expo/vector-icons/Entypo';
 
 import { messages } from '@/globalstates';
 
-import { requestOTP } from '../../client';
+import { requestOTP, loginOTP } from '../../client';
 
 import { styles as globalstyles } from "@/styles/global";
 
@@ -42,8 +42,12 @@ import PFPS from "@/assets/images/pfp.png"
 export default function LoginPage() {
 
     let [email, setEmail] = useState("");
+
+    let [waiting, setWaiting] = useState(false);
+
     let [otpSent, setOSent] = useState(false);
     let [loginSucc, setLSucc] = useState(null);
+
     let [otp, setOTP] = useState([...Array(6)]);
     let [otpSelec, setOTPSelec] = useState([]);
     
@@ -60,7 +64,30 @@ export default function LoginPage() {
     }
 
     let loginPress = () => {
-        
+        if(!waiting) {
+            waiting = true;
+            setWaiting(true);
+            if(!otpSent) {
+                requestOTP(email + "@kgpian.iitkgp.ac.in").then(succ => {
+                    if(succ) {
+                        setWaiting(false);
+                        setOSent(true);
+                    }
+                })
+            } else {
+                if(otp.every(n => typeof n === 'string') && otp.length === 6) {
+                    let otpT = otp.reduce((n, curr) => n + curr, "");
+                    loginOTP(otpT).then(data => {
+                        console.log(data)
+                        if(data) {
+                            router.navigate("/")
+                        } else {
+                            setOTP([...Array(6)]);
+                        }
+                    })
+                }
+            }
+        }
     }
 
     useEffect(() => {
@@ -84,13 +111,20 @@ export default function LoginPage() {
                         <View style={[globalstyles.column, {flex: 1, borderRadius: 10, borderColor: "black", borderWidth: .0, backgroundColor: "whitesmoke"}]}>
                             <Text style={[{fontFamily: "GSF", color: "grey", paddingHorizontal: 13, paddingTop: 10, fontSize: 12, marginBottom: -10}]}>Institute email address</Text>
                             <View style={[globalstyles.row, globalstyles.center, {width: "100%", paddingHorizontal: 10}]}>
-                                <TextInput style={[{fontSize: 16, flex: 1, paddingVertical: 15, fontFamily: "GSF", fontSize: 15}]} placeholder='someone' value={email} onChangeText={v => setEmail(v)}/>
+                                <TextInput style={[{fontSize: 16, flex: 1, paddingVertical: 15, fontFamily: "GSF", fontSize: 15}]} placeholder='someone' value={email} 
+                                onChangeText={v => {
+                                    if(otpSent) {
+                                        setOSent(false);
+                                        setWaiting(false);
+                                    }
+                                    setEmail(v)
+                                }}/>
                                 <Text style={[{fontFamily: "GSF", color: "grey", fontSize: 15}]}><Text style={[{color: "maroon"}]}>@kgpian</Text>.iitkgp.ac.in</Text>
                             </View>
                         </View>
                     </View>
                 </View>
-                <View style={[globalstyles.column, {width: "100%", marginTop: 10}]}>
+                <View style={[globalstyles.column, {width: "100%", marginTop: 10, display: otpSent? "flex" : "none"}]}>
                     <View style={[globalstyles.row, globalstyles.center, {gap: 10, alignSelf: "center"}]}>
                         <View style={[{flex: 1, height: .5, backgroundColor: "grey", display: "none"}]}></View>
                         <Text style={[{fontFamily: "GSF", color: "black", alignSelf: "center", letterSpacing: 0}]}>OTP</Text>
@@ -165,15 +199,27 @@ export default function LoginPage() {
                 </View>
             </View>
 
-            <View style={[globalstyles.column, globalstyles.center, {width: "100%", paddingHorizontal: 20, gap: 15, marginTop: 20}]}>
-                <TouchableOpacity style={[{width: "100%"}, globalstyles.row]} onPress={loginPress}>
-                    <View style={[{paddingHorizontal: 20, width: '100%', alignSelf: "flex-end", justifyContent: "center", gap: 5, backgroundColor: "maroon", paddingVertical: 10, borderRadius: 30}, globalstyles.row, globalstyles.center]}>
-                        <Text style={[{fontFamily: "GSF", color: "white", fontSize: 15}]}>{otpSent? "Login" : "OTP"}</Text>
-                        <AD name='arrow-right' color={"white"}/>
+            <View style={[globalstyles.row, globalstyles.center, {width: "100%", paddingHorizontal: 20, justifyContent: "space-between", gap: 15, marginTop: 20}]}>
+                <TouchableOpacity style={[globalstyles.row, {width: "43%", display: otpSent? "flex" : "none"}]} onPress={loginPress}>
+                    <View style={[{paddingHorizontal: 20, width: '100%', alignSelf: "flex-end", justifyContent: "center", gap: 7, backgroundColor: "rgb(255, 222, 211)", paddingVertical: 10, borderRadius: 30}, globalstyles.row, globalstyles.center]}>
+                        <Text style={[{fontFamily: "GSF", color: "maroon", fontSize: 15}]}>Resend</Text>
+                        {waiting?
+                            <ActivityIndicator size={'small'} color={"maroon"}/>
+                            : 
+                            null
+                        }
                     </View>
                 </TouchableOpacity>
-
-                <Text>{loginSucc? "Login successfull" : loginSucc === false? "Incorrect OTP" : null}</Text>
+                <TouchableOpacity style={[{width: otpSent? "53%" : "100%"}, globalstyles.row]} onPress={loginPress}>
+                    <View style={[{paddingHorizontal: 20, width: '100%', alignSelf: "flex-end", justifyContent: "center", gap: 7, backgroundColor: "maroon", paddingVertical: 10, borderRadius: 30}, globalstyles.row, globalstyles.center]}>
+                        <Text style={[{fontFamily: "GSF", color: "white", fontSize: 15}]}>{otpSent? "Login" : "OTP"}</Text>
+                        {waiting?
+                            <ActivityIndicator size={'small'} color={"white"}/>
+                            : 
+                            <AD name='arrow-right' color={"white"}/>
+                        }
+                    </View>
+                </TouchableOpacity>
             </View>
         </View>
     )

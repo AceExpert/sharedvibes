@@ -3,7 +3,7 @@ import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme, View, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { useColorScheme, View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
 
 import Feather from '@expo/vector-icons/Feather';
 import FA from '@expo/vector-icons/FontAwesome';
@@ -21,9 +21,13 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <View style={[globalstyles.column, {width: "100%", height: "100%", position: "relative"}]}>
         <Stack>
+          <Stack.Screen name="profile" options={{ headerShown: false, contentStyle: {backgroundColor: "white"} }} />
           <Stack.Screen name="index" options={{ headerShown: false, contentStyle: {backgroundColor: "white"} }} />
           <Stack.Screen name="my" options={{ headerShown: false, contentStyle: {backgroundColor: "white"} }} />
+          <Stack.Screen name="message" options={{ headerShown: false, contentStyle: {backgroundColor: "white"} }} />
+          <Stack.Screen name="forum" options={{ headerShown: false, contentStyle: {backgroundColor: "white"} }} />
           <Stack.Screen name="chat" options={{ headerShown: false, contentStyle: {backgroundColor: "white"} }} />
+          <Stack.Screen name="new" options={{ headerShown: false, contentStyle: {backgroundColor: "white"} }} />
         </Stack>
 
         <View style={[globalstyles.row, globalstyles.center, {width: "100%", height: 100, backgroundColor: "transparent", alignSelf: "center", paddingHorizontal: 0, position: "absolute", bottom: 0, paddingBottom: 0}]}>
@@ -34,16 +38,17 @@ export default function RootLayout() {
             <TouchableOpacity onPress={() => router.navigate("/chat")} style={{flex: 1, height: "100%", alignItems: "center"}}>
               <Feather name='send' size={20}/>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.navigate("/chat")} style={{flex: 1, height: "100%", alignItems: "center"}}>
+            <TouchableOpacity onPress={() => router.navigate("/chat")} style={{flex: 1, height: "100%", alignItems: "center", display: "none"}}>
               <Feather name='calendar' size={20}/>
             </TouchableOpacity>
             {/* <FA name='taxi' size={20}/> */}
             <TouchableOpacity onPress={() => router.navigate("/my")} style={{flex: 1, height: "100%", alignItems: "center"}}>
               <View style={[globalstyles.row, globalstyles.center, {justifyContent: "center", borderRadius: 50, aspectRatio: 1, height: 22, backgroundColor: "maroon"}]}>
-                <Image source={PFPS} style={[{width: "100%", height: "100%", borderRadius: 50}]}/>
+                {/* <Image source={PFPS} style={[{width: "100%", height: "100%", borderRadius: 50}]}/> */}
+                <Text style={[{color: "white", fontFamily: "GSF"}]}>A</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.navigate("/chat")} style={{flex: 1, height: "100%", alignItems: "center"}}>
+            <TouchableOpacity onPress={() => router.navigate("/chat")} style={{flex: 1, height: "100%", alignItems: "center", display: "none"}}>
               <Feather name='menu' size={20}/>
             </TouchableOpacity>
           </View>

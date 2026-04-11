@@ -1,10 +1,12 @@
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, TextInput, ScrollView, Image, ImageBackground } from 'react-native';
 
 import { StatusBar } from "expo-status-bar";
 
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+
+import { user } from '../../globalstates';
 
 import Chip from '../../components/chip';
 import ChatSelect from '../../components/chat';
@@ -15,6 +17,8 @@ import MI from '@expo/vector-icons/MaterialIcons';
 import AD from '@expo/vector-icons/AntDesign';
 import II from '@expo/vector-icons/Ionicons';
 import ET from '@expo/vector-icons/Entypo';
+
+import { session } from '../../globalstates';
 
 import { styles as globalstyles } from "../../styles/global";
 
@@ -29,6 +33,18 @@ export default function HomeScreen() {
 
   let [chatCateg, setChatCateg] = useState([['All', 1], ['Unread', 0], ['Friends', 0], ['Groups', 0], ['Favorites', 0]]);
 
+  let [channels, setChannels] = useState([]);
+
+  useEffect(() => {
+    let anoraID = 764595493;
+    let anshulID = 672566629;
+
+    session.wsclient.getChannels().then(chans => {
+      console.log(chans);
+      setChannels(chans);
+    })
+  }, []);
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={[globalstyles.column, globalstyles.center, {width: "100%"}]}>
@@ -42,7 +58,7 @@ export default function HomeScreen() {
               </View>
               <Text style={{fontSize: 20, fontFamily: "GSF", fontWeight: ""}}>Chat</Text>
             </View>
-            <View style={[globalstyles.row, globalstyles.center, {gap: 15}]}>
+            <View style={[globalstyles.row, globalstyles.center, {gap: 15, display: "none"}]}>
               <MI name='settings' size={18}/>
               <MI name='notifications' size={18}/>
               <View style={[globalstyles.row, globalstyles.center, {justifyContent: "center", borderRadius: 50, aspectRatio: 1, height: 22, backgroundColor: "maroon"}]}>
@@ -67,7 +83,7 @@ export default function HomeScreen() {
               <View style={[globalstyles.row, globalstyles.center, {gap: 10, width: "auto"}]}>
                 {chatCateg.map(v => {
                   return (
-                    <Chip name={v[0]} selected={v[1]} onClick={() => {
+                    <Chip name={v[0]} selected={v[1]} key={Math.random()} onClick={() => {
                       let nCateg = [];
                       for(let i = 0; i < chatCateg.length; i++) {
                         nCateg.push([chatCateg[i][0], v[0] === chatCateg[i][0]])
@@ -88,10 +104,23 @@ export default function HomeScreen() {
         
           <View style={[globalstyles.column, {width: "100%", marginTop: 10}]}>
           
-            <ChatSelect name={"You"} avatar={PFPS} message={"Some message I sent to myself"} self={false}/>
-            <ChatSelect name={"Someone"} avatar={"S"} message={"There is Blood donation on 7 Feb"} self={true}/>
-            <ChatSelect name={"Anora"} avatar={"A"} acolor={"rebeccapurple"} message={"We need to give presentation tomorrow"} self = {true} />
-            <ChatSelect name={"Sputh"} avatar={"SP"} acolor={"green"} message={"We are meeting tomorrow"} self = {false} />
+            <ChatSelect name={"You"} avatar={"A"} message={""} self={false} onPress={() => {
+              router.navigate("/message?cid=" + 0);
+            }}/>
+            {channels.length? channels.map(chan => {
+              console.log(chan, chan.members);
+              let chan_name = chan.channel_name;
+              if(chan.channel_type === 0) {
+                chan_name = chan.members.find(mem => mem.uid !== user.uid).display_name;
+              }
+              return (
+                <ChatSelect name={chan_name} avatar={chan_name[0].toUpperCase()} key={chan.cid} acolor={"purple"} message={""} self = {false} onPress={() => router.navigate("/message?cid="+chan.cid)} />
+              )
+            }) :
+              <View style={[globalstyles.column, {width: "100%", paddingHorizontal: 20, paddingTop: 20, alignItems: "center"}]}>
+                <Text style={[{fontFamily: "GSF", textAlign: "center", fontSize: 20, color: "grey"}]}>No more chats. <Text style={[{color: "black"}]}>Start a new <Text style={[{color: "maroon"}]}>chat</Text></Text></Text>
+              </View>
+            }
 
 
           </View>

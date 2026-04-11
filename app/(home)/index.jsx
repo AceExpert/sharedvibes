@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, ScrollView, Image, ImageBackground, TouchableOpacity } from 'react-native';
 
 import { StatusBar } from "expo-status-bar";
+import * as SecureStore from "expo-secure-store";
+import Store from "expo-sqlite/kv-store";
 
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,7 +17,9 @@ import MI from '@expo/vector-icons/MaterialIcons';
 import II from '@expo/vector-icons/Ionicons';
 import ET from '@expo/vector-icons/Entypo';
 
+import { forumData, session, user } from '../../globalstates';
 import { commData } from "../../constants/globaldata";
+import {} from "../../client";
 
 import { styles as globalstyles } from "../../styles/global";
 
@@ -29,24 +33,64 @@ import Chip from '../../components/chip';
 
 export default function HomeScreen() {
 
-  let [discCateg, setDiscCateg] = useState([['All', 0], ['Communities', 0], ['Forums', 1], ['People', 0], ['Alumni', 0], ['More', 0]]);
+  // let [discCateg, setDiscCateg] = useState([['All', 0], ['Communities', 0], ['Forums', 1], ['People', 0], ['Alumni', 0], ['More', 0]]);
+  let [discCateg, setDiscCateg] = useState([['Forums', 1]]);
 
   let [showModal, setShowModal] = useState(false);
 
   let [cData, setCommData] = useState({});
+  let [fData, setForumData] = useState([]);
 
-  let setCommModal = (id) => {
-    let comm = commData.find(v => v.id === id);
+  let setCommModal = (fid) => {
+    let comm = fData.find(v => v.fid === fid);
     if(comm) {
       setCommData(comm);
+      setShowModal(true);
     } else {
 
     }
   }
 
   useEffect(() => {
-    router.navigate("/login")
+    loadData();
   }, [])
+
+  let loadData = () => {
+    let svtoken = SecureStore.getItem("svtoken");
+    if(!svtoken) {
+      setTimeout(() =>
+        router.navigate("/login"), 0);
+    } else {
+      session.svtoken = svtoken;
+      session.wsclient.start();
+      let userdata = JSON.parse(Store.getItemSync("user"));
+      Object.keys(userdata).forEach(k => {
+        user[k] = userdata[k]
+      })
+      if(!user.user_id) {
+        setTimeout(() => router.navigate("/profile"), 0);
+      }
+      console.log("svtoken", session.svtoken);
+      console.log("user", user);
+      session.wsclient.isAuth().then(() => {
+        session.wsclient.sendCmd({type: 16}).then(f => {
+          setForumData(f.forums);
+        })
+      })
+    }
+  }
+
+  let joinForum = (fid) => {
+    session.wsclient.getForums().then(fs => {
+      session.wsclient.sendCmd({type: 17, fid: fid}).then(r => {
+        if(!r.error) {
+          forumData.push(cData);
+          router.navigate("/forum?fid=" + fid);
+        }
+      })
+    });
+    
+  }
 
   return (
     <SafeAreaProvider>
@@ -76,16 +120,16 @@ export default function HomeScreen() {
               </View>
               <View style={[globalstyles.column, {alignSelf: "center", gap: 0, width: "100%"}]}>
                 <Text style={[{fontSize: 18, fontFamily: "GSF"}]}>{cData.name}</Text>
-                <Text style={[{fontSize: 11, fontFamily: "GSF", marginTop: 0}]}>Created by <Text style={[{color: "maroon"}]}>{cData.owner}</Text></Text>
+                {/* <Text style={[{fontSize: 11, fontFamily: "GSF", marginTop: 0}]}>Created by <Text style={[{color: "maroon"}]}>{cData.owner}</Text></Text> */}
               </View>
             </View>
 
             <View style={[globalstyles.row, {marginTop: 15, justifyContent: "space-between", paddingHorizontal: 20, width: "100%", paddingBottom: 10}]}>
               <View style={[globalstyles.column, globalstyles.center, {gap: 2}]}>
                 <FA name='user' size={18} color={"rgba(0, 0, 0, 0.3)"}/>
-                <Text style={[{fontFamily: "GSF", color: "rgba(0, 0, 0, 0.7)", fontSize: 12}]}>{cData.memberCount}</Text>
+                <Text style={[{fontFamily: "GSF", color: "rgba(0, 0, 0, 0.7)", fontSize: 12}]}>{cData.user_count}</Text>
               </View>
-              <View style={[globalstyles.column, globalstyles.center, {gap: 2}]}>
+              <View style={[globalstyles.column, globalstyles.center, {gap: 2, display: "none"}]}>
                 <MI name='cake' size={18} color={"rgba(0, 0, 0, 0.3)"}/>
                 <Text style={[{fontFamily: "GSF", color: "rgba(0, 0, 0, 0.7)", fontSize: 12}]}>{cData.createdAt}</Text>
               </View>
@@ -101,7 +145,7 @@ export default function HomeScreen() {
 
             <ScrollView contentContainerStyle={[{paddingBottom: 0, paddingTop: 0}]}>
 
-              <View style={[globalstyles.column, {}]}>
+              <View style={[globalstyles.column, {display: "none"}]}>
                 <Text style={[{fontSize: 16, fontWeight: 600}]}>Tags</Text>
                 <View style={[globalstyles.row, globalstyles.center, {gap: 5, flexWrap: "wrap", marginTop: 5, paddingRight: 50 && 0, rowGap: 6, marginTop: 10}]}>
                   {cData.tags?.map?.(tg => 
@@ -112,22 +156,22 @@ export default function HomeScreen() {
           
               <View style={[globalstyles.column, {marginTop: 10, gap: 3}]}>
                 <Text style={[{fontSize: 16, fontWeight: 600}]}>About</Text>
-                <Text style={[{fontFamily: "GSF", fontSize: 13, opacity: .8}]}>{cData.ldesc}</Text>
+                <Text style={[{fontFamily: "GSF", fontSize: 13, opacity: .8}]}>{cData.description}</Text>
               </View>
 
             </ScrollView>
             <View style={[globalstyles.row, {gap: 10, width: "100%", marginTop: 15}]}>
-              <TouchableOpacity style={[globalstyles.row, globalstyles.center, {flex: 3}]} onPress={() => router.navigate("/comm")}>
+              <TouchableOpacity style={[globalstyles.row, globalstyles.center, {flex: 3}]} onPress={() => joinForum(cData.fid)}>
                 <View style={[globalstyles.row, globalstyles.center, {backgroundColor: "maroon", width: "100%", borderWidth: 0, borderColor: "maroon", gap: 5, justifyContent: "center", paddingVertical: 10, borderRadius: 100, borderTopLeftRadius: 100, borderBottomLeftRadius: 100}]}>
                   <MI name='add' color={"white"} size={14}/>
                   <Text style={[{color: "white", fontFamily: "GSF", fontSize: 14}]}>Join</Text>
                 </View>
               </TouchableOpacity>
-              <View style={[globalstyles.row, globalstyles.center, {flex: 3, backgroundColor: "rgba(255, 216, 194, 1)", borderWidth: 0, borderColor: "maroon", gap: 5, justifyContent: "center", paddingVertical: 10, borderRadius: 100, borderTopLeftRadius: 100, borderBottomLeftRadius: 100}]}>
+              <View style={[globalstyles.row, globalstyles.center, {display: "none", flex: 3, backgroundColor: "rgba(255, 216, 194, 1)", borderWidth: 0, borderColor: "maroon", gap: 5, justifyContent: "center", paddingVertical: 10, borderRadius: 100, borderTopLeftRadius: 100, borderBottomLeftRadius: 100}]}>
                 <MI name='favorite-outline' color={"maroon"} size={14}/>
                 <Text style={[{color: "maroon", fontFamily: "GSF", fontSize: 14}]}>Save</Text>
               </View>
-              <View style={[globalstyles.row, globalstyles.center, {width: 40, backgroundColor: "white", borderWidth: .5, borderColor: "maroon", gap: 5, justifyContent: "center", paddingVertical: 10, borderRadius: 100, borderTopLeftRadius: 100, borderBottomLeftRadius: 100}]}>
+              <View style={[globalstyles.row, globalstyles.center, {display: "none", width: 40, backgroundColor: "white", borderWidth: .5, borderColor: "maroon", gap: 5, justifyContent: "center", paddingVertical: 10, borderRadius: 100, borderTopLeftRadius: 100, borderBottomLeftRadius: 100}]}>
                 <MI name='share' color={"maroon"} size={14}/>
               </View>
             </View>
@@ -141,9 +185,9 @@ export default function HomeScreen() {
               <View style={[globalstyles.row, globalstyles.center, {justifyContent: "center", position: "relative", top: 1, marginTop: -0}]}>
                 <MI name='dark-mode' size={15} color={'rgba(255, 200, 49, 1)'}/>
               </View>
-              <Text style={{fontSize: 20, fontFamily: "GSF", fontWeight: ""}}>SharedVibes</Text>
+              <Text style={{fontSize: 20, fontFamily: "GSF", fontWeight: ""}}>Nymso</Text>
             </View>
-            <View style={[globalstyles.row, globalstyles.center, {gap: 15}]}>
+            <View style={[globalstyles.row, globalstyles.center, {gap: 15, display: "none"}]}>
               <MI name='settings' size={18}/>
               <MI name='notifications' size={18}/>
               <View style={[globalstyles.row, globalstyles.center, {justifyContent: "center", borderRadius: 50, aspectRatio: 1, height: 22, backgroundColor: "maroon"}]}>
@@ -163,7 +207,7 @@ export default function HomeScreen() {
 
         <ScrollView style={[globalstyles.column, {width: "100%"}]} contentContainerStyle={[globalstyles.column, {paddingBottom: 200}]}>
 
-          <View style={[globalstyles.row, {width: "100%", paddingHorizontal: 20, marginTop: 15, gap: 5, height: 150}]}>
+          <View style={[globalstyles.row, {width: "100%", paddingHorizontal: 20, marginTop: 15, gap: 5, height: 150, display: "none"}]}>
 
             <View style={[globalstyles.row, {flex: 1, height: "100%", borderRadius: 15, backgroundColor: "rgba(172, 0, 0, 1)", paddingHorizontal: 20, paddingVertical: 15}]}>
               <View style={[globalstyles.column, {height: "100%", justifyContent: "space-between"}]}>
@@ -191,7 +235,7 @@ export default function HomeScreen() {
               <View style={[globalstyles.row, {gap: 10, marginTop: 0, width: "100%", flexWrap: "wrap"}]}>
                 {discCateg.map(v => {
                   return (
-                    <Chip name={v[0]} selected={v[1]} fontSize={13} onClick={() => {
+                    <Chip name={v[0]} selected={v[1]} fontSize={13} key={Math.random()} onClick={() => {
                       let nCateg = [];
                       for(let i = 0; i < discCateg.length; i++) {
                         nCateg.push([discCateg[i][0], v[0] === discCateg[i][0]])
@@ -209,7 +253,7 @@ export default function HomeScreen() {
           <View style={[globalstyles.column, {width: "100%", paddingHorizontal: 20, marginTop: 30}]}>
           
             <View style={[globalstyles.row, globalstyles.center, {paddingHorizontal: 0, paddingVertical: 0, backgroundColor: "rgba(255, 216, 194, 0)", justifyContent: "space-between", marginTop: 0}]}>
-              <Text style={{fontSize: 15, fontWeight: 500, color: "black", fontFamily: "GSF"}}>Popular Communities</Text>
+              <Text style={{fontSize: 15, fontWeight: 500, color: "black", fontFamily: "GSF"}}>Popular Forums</Text>
               <View style={[globalstyles.row, globalstyles.center, {paddingHorizontal: 10, paddingVertical: 5, backgroundColor: "rgba(255, 216, 194, 1)" && "whitesmoke", alignSelf: "flex-start", borderRadius: 20}]}>
                 <Text style={{fontSize: 11, fontWeight: 500, color: "rgba(255, 216, 194, 1)" && "black", fontFamily: "GSF"}}>Show All</Text>
               </View>
@@ -217,90 +261,53 @@ export default function HomeScreen() {
             {/* </View> */}
             <View style={[globalstyles.row, {width: "100%", marginTop: 15, flexWrap: "wrap", justifyContent: "space-between", rowGap: 20, alignItems: "flex-start"}]}>
               
-              <CommunityMiniCard 
-                name={"Ambar"} 
-                sdesc={<Text>The <Text style={[{color: "gold", fontWeight: 500}]}>LGBTQIA+</Text> Resource & Ally group of IIT Kharagpur</Text>}
-                logo={AmbarLogo}
-                dark = {true}
-                color={"black"} protect={true} members={131} online={31}
-                onClick={() => {
-                  setCommModal(100)
-                  setShowModal(true)
-                }}  
-              />
-
-              <CommunityMiniCard 
-                name={"Literary Club"} 
-                sdesc={"All the kgpian readers and writers assemble here!"}
-                logo={LitLogo}
-                dark = {false}
-                borderColor={"rgb(100, 100, 100)"}
-                color={"white"}  members={1010} online={310}
-                onClick={() => {
-                  setCommModal(120)
-                  setShowModal(true)
-                }} 
-              />
-
-              <CommunityMiniCard 
-                name={"Coding Cosmos"} 
-                sdesc={"Community for all developers at IIT Kharagpur"}
-                logo={CCLogo}
-                dark = {true}
-                color={"darkblue"} members={1310} online={423}
-                onClick={() => {
-                  setCommModal(130)
-                  setShowModal(true)
-                }} 
-              />
-
-              <CommunityMiniCard 
-                name={"Gymkhana"} 
-                sdesc={"Discuss any and everything about all different activites and events happening at IIT Kharagpur"}
-                logo={null}
-                dark = {false}
-                color={"rgba(255, 196, 0, 1)"} members={3310} online={411}
-                onClick={() => {
-                  setCommModal(140)
-                  setShowModal(true)
-                }}
-              />
-
-              <CommunityMiniCard 
-                name={"B. Tech Lounge"} 
-                sdesc={"Lounge for all the B Tech students and anyone who might be interested"}
-                logo={null}
-                dark = {false}
-                color={"rgba(204, 234, 255, 1)"} members={3310} online={411}
-              />
-
-              <CommunityMiniCard 
-                name={"School of Lawyers"} 
-                sdesc={"Space for all the future lawyers coming from IIT Kharagpur's Rajiv Gandhi School of Intellectual Property Law and everyone interested!"}
-                logo={LawLogo}
-                dark = {true}
-                color={"maroon"} members={310} online={111}
-                onClick={() => {
-                  setCommModal(150)
-                  setShowModal(true)
-                }}
-              />
+              {fData?.map?.(fs => {
+                return (
+                  <CommunityMiniCard name={fs.name} sdesc={fs.description} color={"white"} dark={false} borderColor={"rgba(0, 0, 0, 0.25)"} members={fs.user_count} 
+                    key={fs.fid}
+                    online={1}
+                    onClick={() => {
+                      if(!fs.joined) {
+                        setCommModal(fs.fid);
+                      } else {
+                        router.navigate("/forum?fid="+fs.fid);
+                      }
+                    }}
+                  />
+                )
+              })}
 
             </View>
           </View>
 
           <View style={[globalstyles.column, {width: "100%", paddingHorizontal: 20, marginTop: 25}]}>
             <View style={[globalstyles.row, globalstyles.center, {paddingHorizontal: 0, paddingVertical: 0, backgroundColor: "rgba(255, 216, 194, 0)", justifyContent: "space-between"}]}>
-              <Text style={{fontSize: 15, fontWeight: 500, color: "black", fontFamily: "GSF"}}>All Communities</Text>
+              <Text style={{fontSize: 15, fontWeight: 500, color: "black", fontFamily: "GSF"}}>All Forums</Text>
               <View style={[globalstyles.row, globalstyles.center, {paddingHorizontal: 10, paddingVertical: 5, backgroundColor: "whitesmoke", alignSelf: "flex-start", borderRadius: 20}]}>
                 <Text style={{fontSize: 11, fontWeight: 500, color: "rgba(255, 216, 194, 1)" && "black", fontFamily: "GSF"}}>Show All</Text>
               </View>
             </View>
 
             <View style={[globalstyles.row, {width: "100%", marginTop: 15, flexWrap: "wrap", justifyContent: "space-between", rowGap: 20}]}>
-              <View style={[globalstyles.column, {width: "100%", gap: 10}]}>
+              <View style={[globalstyles.row, {width: "100%", gap: 10, flexWrap: "wrap", width: "100%"}]}>
+
+                {fData.map(fs => {
+                  return (
+                    <CommunityMiniCard name={fs.name} sdesc={fs.description} color={"white"} dark={false} borderColor={"rgba(0, 0, 0, 0.25)"} members={fs.user_count} 
+                    key={fs.fid}
+                    online={1}
+                      onClick={() => {
+                      if(!fs.joined) {
+                        setCommModal(fs.fid);
+                      } else {
+                        router.navigate("/forum?fid="+fs.fid);
+                      }
+                    }}
+                    />
+                  )
+                })}
                 
-                <View style={[globalstyles.row, globalstyles.center, {justifyContent: "space-between"}]}>
+                {/* <View style={[globalstyles.row, globalstyles.center, {justifyContent: "space-between"}]}>
                   <View style={[globalstyles.row, globalstyles.center, {gap: 10}]}>
                     <Image source={AmbarLogo} style={[{borderRadius: 50, aspectRatio: 1, width: 43}]}/>
                     <View style={[globalstyles.column, {gap: 0}]}>
@@ -330,7 +337,7 @@ export default function HomeScreen() {
                       <Text style={[{fontSize: 11, fontWeight: 400, opacity: .8, fontFamily: "GSF"}]}>Community for all the indumatis</Text>
                     </View>
                   </View>
-                </View>
+                </View> */}
 
               </View>
             </View>
